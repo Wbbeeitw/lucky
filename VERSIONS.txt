@@ -1,0 +1,2 @@
+2774d9b fix(record): preserve compressed images during reset (#4527)
+5ce6643 Merge pull request #816 from HaozheZhang6/fix/wipe-table-height-drift

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.npz
+*.hdf5
+*.safetensors
+*.ckpt
+*.pt
+data/
+ck*/outputs/
+.eggs/
+*.egg-info/
