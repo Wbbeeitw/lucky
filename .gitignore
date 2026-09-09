@@ -6,6 +6,18 @@ __pycache__/
 *.ckpt
 *.pt
 data/
-ck*/outputs/
-.eggs/
 *.egg-info/
+.eggs/
+
+# robosuite: 网格大件与文档图（XML 定义全保留；本 Pilot 用 Panda，mesh 需要时从上游补）
+robosuite/robosuite/models/assets/robots/*/obj_meshes/
+robosuite/robosuite/models/assets/robots/*/meshes/
+robosuite/robosuite/models/assets/bullet_data/
+robosuite/robosuite/models/assets/bases/
+robosuite/robosuite/models/assets/textures/
+robosuite/docs/images/
+
+# lerobot: 测试工件与媒体
+lerobot/tests/artifacts/
+lerobot/media/
+lerobot/uv.lock
