@@ -53,7 +53,7 @@ FEATURES = {
         "shape": (3, 224, 224),
         "names": ["channels", "height", "width"],
     },
-    "observation.state": {"dtype": "float32", "shape": (9,), "names": ["state"]},
+    "observation.state": {"dtype": "float32", "shape": (15,), "names": ["state"]},
     "action": {"dtype": "float32", "shape": (7,), "names": ["action"]},
     "pressure": {"dtype": "float32", "shape": (6,), "names": ["pressure"]},
     "latent": {"dtype": "float32", "shape": (N_LATENT, D_LATENT), "names": ["latent"]},
@@ -66,14 +66,14 @@ def obs_state(obs):
         np.array(obs["robot0_eef_pos"], dtype=np.float64),
         np.array(obs["robot0_eef_quat"], dtype=np.float64),
         np.array(obs["robot0_gripper_qpos"], dtype=np.float64)[:2],
-    ])
+    ])  # 9-dim proprio; pressure appended per-frame below (labeled-aware)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hdf5", default="/data/VTLA/data/robomimic_square/square_ph_demo_v15.hdf5")
     ap.add_argument("--labels", default="/data/VTLA/data/pilot_labels")
-    ap.add_argument("--root", default="/data/VTLA/data/lerobot_square")
+    ap.add_argument("--root", default="/data/VTLA/data/lerobot_square_v2")
     ap.add_argument("--repo-id", default="vtla/square_pilot")
     ap.add_argument("--n-demos", type=int, default=200)
     args = ap.parse_args()
@@ -100,8 +100,8 @@ def main():
         actions = demos[k]["actions"][:]
         T = len(actions)
         lab = np.load(os.path.join(args.labels, k, "labels.npz"))
-        lab_state = lab["state"]                # (L,9)
-        L = len(lab_state)
+        labeled_t = lab["labeled_t"]            # (L,) original frame indices
+        L = len(lab_state := lab["state"])
 
         env.reset()
         obs_list = []
@@ -112,28 +112,27 @@ def main():
             obs, _, _, _ = env.step(actions[t])
             obs_list.append(obs)
 
-        li = 0          # pointer into labeled arrays (monotonic)
+        labeled_set = {int(t): i for i, t in enumerate(labeled_t)}
         for t in range(T):
-            st = obs_state(obs_list[t])
-            is_lab = False
-            if li < L and np.allclose(st, lab_state[li], atol=1e-6):
-                is_lab = True
-                li += 1
+            i = labeled_set.get(t, -1)
+            pres = lab["pressure"][i].astype(np.float64) if i >= 0 else np.zeros(6)
+            st = np.concatenate([obs_state(obs_list[t]), pres])   # 9 + 6 = 15
             frame = {
                 "task": "insert the square nut onto the square peg",
                 "observation.images.agentview": obs_list[t]["agentview_image"],
                 "observation.state": st.astype(np.float32),
                 "action": np.asarray(actions[t], dtype=np.float32),
-                "pressure": lab["pressure"][li - 1].astype(np.float32) if is_lab else np.zeros(6, np.float32),
-                "latent": lab["latent"][li - 1].astype(np.float32) if is_lab else np.zeros((N_LATENT, D_LATENT), np.float32),
-                "weight": np.array([lab["weight"][li - 1]], np.float32) if is_lab else np.zeros(1, np.float32),
+                "pressure": (lab["pressure"][i].astype(np.float32) if i >= 0 else np.zeros(6, np.float32)),
+                "latent": (lab["latent"][i].astype(np.float32) if i >= 0 else np.zeros((N_LATENT, D_LATENT), np.float32)),
+                "weight": (np.array([lab["weight"][i]], np.float32) if i >= 0 else np.zeros(1, np.float32)),
             }
             ds.add_frame(frame)
         ds.save_episode()
 
+        li = labeled_set and max(labeled_set.keys()) and len(labeled_set) or 0
         if li != L:
             mismatch += 1
-            print(f"WARN {k}: matched {li}/{L} labeled frames", flush=True)
+            print(f"WARN {k}: wrote {li}/{L} labeled frames", flush=True)
         total += T
         labeled_total += li
         print(f"{k}: {T} frames, labeled {li}/{L}", flush=True)

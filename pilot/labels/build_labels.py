@@ -216,6 +216,7 @@ def main():
         # pass 2: labels
         latents, weights, states_arr, actions_arr, press_arr, dF_arr, wrist_arr, phase = [], [], [], [], [], [], [], []
         prev_latent = None
+        labeled_t = []
         for t in range(T):
             cpos, cforce = future_contact(t)
             if len(cpos) == 0:
@@ -224,8 +225,6 @@ def main():
             uvs = project_to_image(np.array(cpos), cam_pos, cam_mat, fov)
             uv = [p for p in uvs if p is not None]
             if not uv:
-            if not uv:
-                if stats["skipped_nofuture"] < 3:
                 stats["skipped_nofuture"] += 1
                 continue
             u = int(np.mean([p[0] for p in uv]))
@@ -245,6 +244,7 @@ def main():
 
             latents.append(latent)
             weights.append(w)
+            labeled_t.append(t)
             states_arr.append(frames[t]["state"])
             actions_arr.append(frames[t]["action"])
             press_arr.append(frames[t]["pressure"])
@@ -264,6 +264,7 @@ def main():
                 latent=latents, weight=weights,
                 state=np.stack(states_arr), action=np.stack(actions_arr),
                 pressure=np.stack(press_arr), wrist=np.stack(wrist_arr),
+                labeled_t=np.array(labeled_t, dtype=np.int64),
             )
             stats["demos"] += 1
             stats["frames"] += T
