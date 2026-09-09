@@ -9,9 +9,12 @@ data/
 *.egg-info/
 .eggs/
 
-# robosuite: 网格大件与文档图（XML 定义全保留；本 Pilot 用 Panda，mesh 需要时从上游补）
+# robosuite: 非 Panda 机器人的网格大件 + 文档图（Panda meshes 保留——robot.xml 运行必需）
 robosuite/robosuite/models/assets/robots/*/obj_meshes/
-robosuite/robosuite/models/assets/robots/*/meshes/
+robosuite/robosuite/models/assets/robots/ur5e/meshes/
+robosuite/robosuite/models/assets/robots/sawyer/meshes/
+robosuite/robosuite/models/assets/robots/baxter/meshes/
+robosuite/robosuite/models/assets/robots/spot/meshes/
 robosuite/robosuite/models/assets/bullet_data/
 robosuite/robosuite/models/assets/bases/
 robosuite/robosuite/models/assets/textures/
@@ -20,4 +23,3 @@ robosuite/docs/images/
 # lerobot: 测试工件与媒体
 lerobot/tests/artifacts/
 lerobot/media/
-lerobot/uv.lock
