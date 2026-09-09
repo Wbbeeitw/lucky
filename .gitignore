@@ -23,3 +23,10 @@ robosuite/docs/images/
 # lerobot: 测试工件与媒体
 lerobot/tests/artifacts/
 lerobot/media/
+
+# 逐文件大网格（>1.5M 的 obj/STL；小网格与全部 XML/URDF 保留）
+robosuite/robosuite/models/assets/robots/gr1/
+robosuite/robosuite/models/assets/robots/iiwa/meshes/
+robosuite/robosuite/models/assets/robots/kinova3/meshes/
+robosuite/tests
+lerobot/tests/artifacts/*.bag
