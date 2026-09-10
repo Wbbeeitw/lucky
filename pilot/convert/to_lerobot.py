@@ -24,6 +24,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 FPS = 20
 N_LATENT, D_LATENT = 49, 768
+CHUNK = 50   # must equal pi05_base chunk_size (attention mask built at this length)
 
 
 def make_replay_env(env_args):
@@ -54,11 +55,17 @@ FEATURES = {
         "names": ["channels", "height", "width"],
     },
     "observation.state": {"dtype": "float32", "shape": (15,), "names": ["state"]},
-    "action": {"dtype": "float32", "shape": (7,), "names": ["action"]},
+    "action": {"dtype": "float32", "shape": (50, 7), "names": ["action"]},
     "pressure": {"dtype": "float32", "shape": (6,), "names": ["pressure"]},
     "latent": {"dtype": "float32", "shape": (N_LATENT, D_LATENT), "names": ["latent"]},
     "weight": {"dtype": "float32", "shape": (1,), "names": ["weight"]},
 }
+
+
+def pad_action(a):
+    """(7,) -> (50,7): repeat last action to fill the chunk (convention: hold)."""
+    out = np.repeat(a[None, :], CHUNK, axis=0)
+    return out
 
 
 def obs_state(obs):
@@ -121,7 +128,7 @@ def main():
                 "task": "insert the square nut onto the square peg",
                 "observation.images.agentview": obs_list[t]["agentview_image"],
                 "observation.state": st.astype(np.float32),
-                "action": np.asarray(actions[t], dtype=np.float32),
+                "action": pad_action(np.asarray(actions[t], dtype=np.float32)),
                 "pressure": (lab["pressure"][i].astype(np.float32) if i >= 0 else np.zeros(6, np.float32)),
                 "latent": (lab["latent"][i].astype(np.float32) if i >= 0 else np.zeros((N_LATENT, D_LATENT), np.float32)),
                 "weight": (np.array([lab["weight"][i]], np.float32) if i >= 0 else np.zeros(1, np.float32)),
