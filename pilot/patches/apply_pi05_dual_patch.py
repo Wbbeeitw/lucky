@@ -64,18 +64,15 @@ def patch_model(src: str) -> str:
         m = re.search(r"(        self\.action_out_proj[^\n]*\n)", src)
         assert m, "action_out_proj assignment missing"
         add = m.group(1) + """
-        # Dual-pathway heads (opt-in)
-        self._aux_enabled = bool(getattr(config, "add_region_head", False) or getattr(config, "add_force_head", False))
+        # Dual-pathway heads: ALWAYS create (so checkpoints/PEFT see them regardless of
+        # which config path instantiated the model). Forward-side flags gate usage.
         self._region_enabled = bool(getattr(config, "add_region_head", False))
         self._force_enabled = bool(getattr(config, "add_force_head", False))
-        if self._region_enabled:
-            self._region_head = RegionHead(
-                cond_dim=self.config.vision_hidden_size if hasattr(self.config, "vision_hidden_size") else 2048,
-                latent_dim=768, n_latent=49, n_queries=49, depth=3, hidden=512)
-        if self._force_enabled:
-            self._force_head = ForceHead(
-                feat_dim=self.config.action_expert_variant if isinstance(self.config.action_expert_variant, int) else 1024,
-                n_out=getattr(config, "n_pressure", 6))
+        self._aux_enabled = self._region_enabled or self._force_enabled
+        self._region_head = RegionHead(
+            cond_dim=getattr(self.config, "vision_hidden_size", 2048),
+            latent_dim=768, n_latent=49, n_queries=49, depth=3, hidden=512)
+        self._force_head = ForceHead(feat_dim=1024, n_out=getattr(config, "n_pressure", 6))
 """
         src = src.replace(m.group(1), add, 1)
         changed = True
